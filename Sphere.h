@@ -2,12 +2,13 @@
 #define SPHERE_H
 
 #include "math.h"
+#include "Shape.h"
 
-struct Sphere {
+struct Sphere : public Shape {
     Sphere();
     Sphere(Vector3f centre, float radius, Vector3f color);
 
-    bool doesIntersect(float& t, Vector3f rayOrigin, Vector3f rayDirection);
+    bool doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t);
 
     Vector3f centre;
     Vector3f color;
