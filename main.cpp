@@ -18,7 +18,7 @@ constexpr int height = 640, width = 840;
 constexpr float aspectRatio = width / float(height);
 constexpr int numShapes = 5;
 
-inline int getShapeInterception(Shape* shapes[], const Vector3f& origin,const Vector3f& direction, float& t0, float& minT) {
+inline int getShapeIntersection(Shape* shapes[], const Vector3f& origin,const Vector3f& direction, float& t0, float& minT) {
     int shapeHit = -1;
     for(int k = 0; k < numShapes; ++k) {
         bool doesIntersect = shapes[k]->doesIntersect(origin, direction,t0);
@@ -58,7 +58,7 @@ int main() {
             rayDirection = m_normalize(rayDirection);
 
             float minT = M_INFINITE, t0 = 0.0f;
-            int shapeHit = getShapeInterception(shapes, rayOrigin, rayDirection, t0, minT);
+            int shapeHit = getShapeIntersection(shapes, rayOrigin, rayDirection, t0, minT);
 
             if(shapeHit != -1) {
                 Vector3f p0 = rayOrigin + (minT * rayDirection); //point of intersection
@@ -72,7 +72,7 @@ int main() {
                 int shininess = 0;
 
                 //ambient lighting
-                Vector3f ambient = shapes[shapeHit]->color * Vector3f(0.1f); //darken the color of the shape and set that to the ambience
+                Vector3f ambient = shapes[shapeHit]->color * Vector3f(0.2f); //the color of the shadow
 
                 Vector3f hitNormal  = m_normalize(shapes[shapeHit]->getNormal(p0, shininess, diffuseColor, specularColor));
 
@@ -86,8 +86,8 @@ int main() {
                 float maxCalc = std::max(0.0f, m_dot(reflection, m_normalize(rayOrigin-p0)));
                 Vector3f specular = specularColor * lightIntensity * pow(maxCalc, shininess);
 
-                //check if lightRay hits a shape
-                int lightShapeHit = getShapeInterception(shapes, p0 + (M_EPSILON*hitNormal),lightRay, t0, minT);
+                //emit a "shadow ray" from the interception and check if it hits a shape, it is a shadow if it hits
+                int lightShapeHit = getShapeIntersection(shapes, p0 + (M_EPSILON*hitNormal),lightRay, t0, minT);
                 img[i][j] = lightShapeHit != -1 ? shapes[lightShapeHit]->color * ambient : diffuse + specular;
             }
             else img[i][j] = Vector3f(1.f); //ray did not hit hit anything, set color to white
