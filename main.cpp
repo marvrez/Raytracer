@@ -18,6 +18,18 @@ constexpr int height = 640, width = 840;
 constexpr float aspectRatio = width / float(height);
 constexpr int numShapes = 5;
 
+inline int getShapeInterception(Shape* shapes[], const Vector3f& origin,const Vector3f& direction, float& t0, float& minT) {
+    int shapeHit = -1;
+    for(int k = 0; k < numShapes; ++k) {
+        bool doesIntersect = shapes[k]->doesIntersect(origin, direction,t0);
+        if(doesIntersect && t0 < minT) {
+            minT = t0;
+            shapeHit = k;
+        }
+    }
+    return shapeHit;
+}
+
 int main() {
     Shape* shapes[numShapes];
     shapes[0]= new Plane(Vector3f(0,-4,0),Vector3f(0,1,0),Vector3f(0.2,0.2,0.2)); // Dark grey floor
@@ -46,15 +58,7 @@ int main() {
             rayDirection = m_normalize(rayDirection);
 
             float minT = M_INFINITE, t0 = 0.0f;
-            int shapeHit = -1;
-
-            for(int k = 0; k < numShapes; ++k) {
-                bool doesIntersect = shapes[k]->doesIntersect(rayOrigin, rayDirection,t0);
-                if(doesIntersect && t0 < minT) {
-                    minT = t0;
-                    shapeHit = k;
-                }
-            }
+            int shapeHit = getShapeInterception(shapes, rayOrigin, rayDirection, t0, minT);
 
             if(shapeHit != -1) {
                 Vector3f p0 = rayOrigin + (minT * rayDirection); //point of intersection
@@ -62,24 +66,30 @@ int main() {
                 //Light properties
                 Vector3f lightPosition  = Vector3f(0.f, 20.f, 0.f); //set in the scene in front of the sphres bu alsot above them
                 Vector3f lightIntensity = Vector3f(1.f); //white light so it looks as natural as possible
+
                 Vector3f diffuseColor   = Vector3f(0.f);
                 Vector3f specularColor  = Vector3f(0.f);
                 int shininess = 0;
 
-                //Diffuse lighting
-                Vector3f lightRay   = m_normalize(lightPosition - p0);
+                //ambient lighting
+                Vector3f ambient = shapes[shapeHit]->color * Vector3f(0.1f); //darken the color of the shape and set that to the ambience
+
                 Vector3f hitNormal  = m_normalize(shapes[shapeHit]->getNormal(p0, shininess, diffuseColor, specularColor));
+
+                //Diffuse lighting 
+                //Phong reflection model - https://en.wikipedia.org/wiki/Phong_reflection_model
+                Vector3f lightRay   = m_normalize(lightPosition - p0); //this is the reflective ray point towards the light source
                 Vector3f diffuse    = diffuseColor * lightIntensity * std::max(0.0f, m_dot(lightRay, hitNormal));
 
                 //Specular lighting
-                Vector3f reflection = m_normalize(2*m_dot(lightRay,hitNormal)*hitNormal - lightRay);
+                Vector3f reflection = m_normalize(2*m_dot(lightRay,hitNormal)*hitNormal - lightRay); 
                 float maxCalc = std::max(0.0f, m_dot(reflection, m_normalize(rayOrigin-p0)));
                 Vector3f specular = specularColor * lightIntensity * pow(maxCalc, shininess);
 
-                //combine the diffuse and specular lighting
-                img[i][j] = diffuse + specular;
+                //check if lightRay hits a shape
+                int lightShapeHit = getShapeInterception(shapes, p0 + (M_EPSILON*hitNormal),lightRay, t0, minT);
+                img[i][j] = lightShapeHit != -1 ? shapes[lightShapeHit]->color * ambient : diffuse + specular;
             }
-
             else img[i][j] = Vector3f(1.f); //ray did not hit hit anything, set color to white
         }
     }
