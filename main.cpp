@@ -16,7 +16,7 @@ using byte = uint8_t;
 //need aspect ratio, as image might not be a square
 constexpr int height = 640, width = 840;
 constexpr float aspectRatio = width / float(height);
-constexpr int numShapes = 6;
+constexpr int numShapes = 5;
 
 int main() {
     Shape* shapes[numShapes];
@@ -25,7 +25,6 @@ int main() {
     shapes[2]= new Sphere(Vector3f(5,-1,-15),2,Vector3f(0.9,0.76,0.46)); //Yellow
     shapes[3]= new Sphere(Vector3f(5,0,-25),3,Vector3f(0.65,0.77,0.97)); //Light blue 
     shapes[4]= new Sphere(Vector3f(-5.5,0,-15),3,Vector3f(0.9,0.9,0.9)); //Light grey
-    shapes[5]= new Triangle(Vector3f(0,3,-5), Vector3f(-1.9,1.2,-5), Vector3f(1.9, 1.2, -5), Vector3f(0.8,0,1)); //Purple
 
     //img will represent the view plane
     std::vector<std::vector<Vector3f> > img(height, std::vector<Vector3f>(width));
@@ -55,8 +54,33 @@ int main() {
                     minT = t0;
                     shapeHit = k;
                 }
-                img[i][j] = shapeHit == -1 ? Vector3f(1) : shapes[shapeHit]->color;
             }
+
+            if(shapeHit != -1) {
+                Vector3f p0 = rayOrigin + (minT * rayDirection); //point of intersection
+
+                //Light properties
+                Vector3f lightPosition  = Vector3f(0.f, 20.f, 0.f); //set in the scene in front of the sphres bu alsot above them
+                Vector3f lightIntensity = Vector3f(1.f); //white light so it looks as natural as possible
+                Vector3f diffuseColor   = Vector3f(0.f);
+                Vector3f specularColor  = Vector3f(0.f);
+                int shininess = 0;
+
+                //Diffuse lighting
+                Vector3f lightRay   = m_normalize(lightPosition - p0);
+                Vector3f hitNormal  = m_normalize(shapes[shapeHit]->getNormal(p0, shininess, diffuseColor, specularColor));
+                Vector3f diffuse    = diffuseColor * lightIntensity * std::max(0.0f, m_dot(lightRay, hitNormal));
+
+                //Specular lighting
+                Vector3f reflection = m_normalize(2*m_dot(lightRay,hitNormal)*hitNormal - lightRay);
+                float maxCalc = std::max(0.0f, m_dot(reflection, m_normalize(rayOrigin-p0)));
+                Vector3f specular = specularColor * lightIntensity * pow(maxCalc, shininess);
+
+                //combine the diffuse and specular lighting
+                img[i][j] = diffuse + specular;
+            }
+
+            else img[i][j] = Vector3f(1.f); //ray did not hit hit anything, set color to white
         }
     }
 
