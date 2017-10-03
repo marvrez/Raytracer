@@ -1,5 +1,4 @@
 #include "Sphere.h"
-#include <iostream>
 
 Sphere::Sphere() 
     : Shape(), centre(0), radius(0), radius2(0)
