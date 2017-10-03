@@ -64,10 +64,10 @@ int main() {
     file << "P6\n" << width << " " << height << "\n255\n";
     for(int y = 0; y < height; ++y) {
         for(int x = 0; x < width; ++x) {
-            Vector3f vec = img[y][x];
-            file << byte(Math::clamp(vec.x*255, 1, 255)) 
-                 << byte(Math::clamp(vec.y*255, 1, 255)) 
-                 << byte(Math::clamp(vec.z*255, 1, 255));
+            Vector3f pixel = img[y][x];
+            file << byte(Math::clamp(pixel.r*255, 1, 255)) 
+                 << byte(Math::clamp(pixel.g*255, 1, 255)) 
+                 << byte(Math::clamp(pixel.b*255, 1, 255));
         }
     }
     file.close();

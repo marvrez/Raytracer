@@ -8,9 +8,10 @@ struct Plane : public Shape {
     Plane();
     Plane(Vector3f position, Vector3f normal, Vector3f color);
 
-    bool doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t);
+    virtual bool doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t);
 
     Vector3f normal;
+    Vector3f position;
 };
 
 #endif

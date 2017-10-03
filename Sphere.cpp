@@ -1,12 +1,12 @@
 #include "Sphere.h"
 
 Sphere::Sphere() 
-    : Shape(), centre(0,0,0), radius(0), radius2(0)
+    : Shape(), centre(0), radius(0), radius2(0)
 {
 }
 
 Sphere::Sphere(Vector3f centre, float radius, Vector3f color) 
-    : Shape(centre,color),centre(centre), radius(radius), radius2(radius*radius)
+    : Shape(color),centre(centre), radius(radius), radius2(radius*radius)
 {
 }
 

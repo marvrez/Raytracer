@@ -8,7 +8,7 @@ Plane::Plane()
 }
 
 Plane::Plane(Vector3f position, Vector3f normal, Vector3f color) 
-    : Shape(position, color), normal(normal)
+    : Shape(color), position(position), normal(normal)
 {
 }
 
