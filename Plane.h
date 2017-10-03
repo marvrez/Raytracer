@@ -10,6 +10,9 @@ struct Plane : public Shape {
 
     virtual bool doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t);
 
+    virtual Vector3f getNormal(Vector3f p0, int& shininess,
+                               Vector3f& diffuseColor, Vector3f& specularColor);
+
     Vector3f normal;
     Vector3f position;
 };

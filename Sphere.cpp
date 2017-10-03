@@ -21,3 +21,12 @@ bool Sphere::doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t) 
     float t0 = t = tca - thc; //save point of intersection
     return true;
 }
+
+Vector3f Sphere::getNormal(Vector3f p0, int& shininess,
+                           Vector3f& diffuseColor, Vector3f& specularColor)
+{
+    shininess = 128; //adds a glow effect to the spheres
+    diffuseColor = this->color;
+    specularColor = Vector3f(0.7f, 0.7f, 0.7f);
+    return (p0 - this->centre);
+}

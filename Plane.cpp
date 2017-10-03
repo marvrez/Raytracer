@@ -18,3 +18,12 @@ bool Plane::doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t) {
     float result = m_dot(position - rayOrigin, normal) / denom;
     return (t = result) >= 0;
 }
+
+Vector3f Plane::getNormal(Vector3f p0, int& shininess,
+                          Vector3f& diffuseColor, Vector3f& specularColor)
+{
+    shininess = 0;
+    diffuseColor = Vector3f(0.8f, 0.8f, 0.8f);
+    specularColor = this->color;
+    return this->normal;
+}

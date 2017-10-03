@@ -10,6 +10,9 @@ struct Sphere : public Shape {
 
     virtual bool doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t);
 
+    virtual Vector3f getNormal(Vector3f p0, int& shininess,
+                               Vector3f& diffuseColor, Vector3f& specularColor);
+
     Vector3f centre;
     Vector3f color;
     float radius, radius2; //cache radius^2 so we save some time calculating it over and over again
