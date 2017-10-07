@@ -18,7 +18,7 @@ bool Sphere::doesIntersect(Vector3f rayOrigin, Vector3f rayDirection, float& t) 
     float d2 = m_dot(L,L) - tca*tca;
     if(d2 > this->radius2) return false; //ray misses the sphere
     float thc = sqrt(radius2-d2);
-    float t0 = t = tca - thc; //save point of intersection
+    t = tca - thc; //save point of intersection
     return true;
 }
 
