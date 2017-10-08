@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <thread>
+#include <atomic>
 
 #include <SDL.h>
 
@@ -20,12 +22,12 @@ using byte = uint8_t;
 
 Vector3f rayTrace(Vector3f rayOrigin, Vector3f rayDirection, int depth);
 void setPixel(SDL_Surface* surface);
-bool drawPixel(SDL_Surface* surface, int i, int j, int x, int y, int z);
+bool drawPixel(SDL_Surface* surface, int i, int j, const Vector3f& col);
 
 //need aspect ratio, as image might not be a square
 constexpr int height = 640, width = 840;
 constexpr float aspectRatio = width / float(height);
-constexpr int numShapes = 5;
+constexpr int numShapes = 5, maxDepth = 5;
 static bool hardShadows = true, recurseReflect = false; 
 static float FOV = 90.0f;
 
@@ -52,7 +54,11 @@ bool drawPixel(SDL_Surface* surface, int x, int y, const Vector3f& col) {
 
 void setPixel(SDL_Surface* surface) {
     float scale = tan(M_RAD(FOV) / 2); 
+    Vector3f rayOrigin = Vector3f(0,0,0);
+    std::vector<std::thread> threads;
+
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
+//#pragma omp parallel for
     for(int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
             //normalize the pixel positions to the range [0,1], +0.5 so the ray passes the center of the pixel
@@ -63,7 +69,6 @@ void setPixel(SDL_Surface* surface) {
             //since point lies on the image plane, which is 1 unit away from the camera's origin(0,0,0) the z-axis is set to -1
             Vector3f rayDirection = {camX, camY, -1};
             rayDirection = m_normalize(rayDirection);
-            Vector3f rayOrigin = Vector3f(0,0,0);
 
 			Vector3f color = rayTrace(rayOrigin, rayDirection, 0);
 			img[y][x] = color;
@@ -77,7 +82,7 @@ void setPixel(SDL_Surface* surface) {
 
 inline int getShapeIntersection(const std::vector<Shape*>& shapes, const Vector3f& origin,const Vector3f& direction, float& t0, float& minT) {
     int shapeHit = -1;
-    for(int k = 0; k < numShapes; ++k) {
+    for(int k = 0; k < shapes.size(); ++k) {
         bool doesIntersect = shapes[k]->doesIntersect(origin, direction,t0);
         if(doesIntersect && t0 < minT) {
             minT = t0;
@@ -91,7 +96,7 @@ inline int getShapeIntersection(const std::vector<Shape*>& shapes, const Vector3
 Vector3f rayTrace(Vector3f rayOrigin, Vector3f rayDirection, int depth) {
         float minT = M_INFINITE, t0 = 0.0f;
         int shapeHit = getShapeIntersection(shapes, rayOrigin, rayDirection, t0, minT);
-        Vector3f pixelColor;
+        Vector3f pixelColor, reflectColor;
 
         if(shapeHit != -1) {
             Vector3f p0 = rayOrigin + (minT * rayDirection); //point of intersection
@@ -120,6 +125,15 @@ Vector3f rayTrace(Vector3f rayOrigin, Vector3f rayDirection, int depth) {
             Vector3f reflection = m_normalize(2*m_dot(lightRay,hitNormal)*hitNormal - lightRay); 
             float maxCalc = std::max(0.0f, m_dot(reflection, m_normalize(rayOrigin-p0)));
             Vector3f specular = specularColor * lightIntensity * pow(maxCalc, shininess);
+
+            if(recurseReflect) {
+                if ((depth < maxDepth) && (shininess > 0)) {
+                    Vector3f reflectionRayDirection = rayDirection - 2 * m_dot(rayDirection, hitNormal) * hitNormal;
+                    Vector3f reflectionRayOrigin = p0 + (hitNormal * M_EPSILON);
+                    reflectColor = reflectColor + 0.05f * rayTrace(reflectionRayOrigin, reflectionRayDirection, depth + 1);
+                    return pixelColor = diffuse + specular + reflectColor;
+                }
+            }
 
             //emit a "shadow ray" from the interception and check if it hits a shape, it is a shadow if it hits
             int lightShapeHit = -1;
@@ -165,13 +179,32 @@ void saveToFile(std::string fileName, const std::vector<std::vector<Vector3f> >&
     }
     file.close();
 }
+void createShapes() {
+
+    /*
+	shapes.push_back(new Plane(Vector3f(0, -4, 0), Vector3f(0, 1, 0), Vector3f(0.3f)));
+	//======================= SPHERES =======================
+	shapes.push_back(new Sphere(Vector3f(0, 0, -20), 4, Vector3f(1, 0.32f, 0.36f)));
+	shapes.push_back(new Sphere(Vector3f(5, -1, -15), 2, Vector3f(0.9f, 0.76f, 0.46f)));
+	shapes.push_back(new Sphere(Vector3f(5, 0, -25), 3, Vector3f(0.65f, 0.77f, 0.97f)));
+	shapes.push_back(new Sphere(Vector3f(-5.5f, 0, -15), 3, Vector3f(0.9f)));
+    */
+	shapes[0] = (new Plane(Vector3f(0, -4, 0), Vector3f(0, 1, 0), Vector3f(0.3f)));
+	//======================= SPHERES =======================
+	shapes[1]=(new Sphere(Vector3f(0, 0, -20), 4, Vector3f(1, 0.32f, 0.36f)));
+	shapes[2]=(new Sphere(Vector3f(5, -1, -15), 2, Vector3f(0.9f, 0.76f, 0.46f)));
+	shapes[3]=(new Sphere(Vector3f(5, 0, -25), 3, Vector3f(0.65f, 0.77f, 0.97f)));
+	shapes[4] = (new Sphere(Vector3f(-5.5f, 0, -15), 3, Vector3f(0.9f)));
+}
 
 int main() {
+    /*
     shapes[0]= new Plane(Vector3f(0,-4,0),Vector3f(0,1,0),Vector3f(0.2f,0.2,0.2)); // Dark grey floor
     shapes[1]= new Sphere(Vector3f(0,0,-20),4,Vector3f(1,0.32,0.36)); //Red
     shapes[2]= new Sphere(Vector3f(5,-1,-15),2,Vector3f(0.9,0.76,0.46)); //Yellow
     shapes[3]= new Sphere(Vector3f(5,0,-25),3,Vector3f(0.65,0.77,0.97)); //Light blue 
     shapes[4]= new Sphere(Vector3f(-5.5,0,-15),3,Vector3f(0.9,0.9,0.9)); //Light grey
+    */
 
     SDL_Window* window = nullptr;
     SDL_Surface* surface = nullptr;
@@ -186,6 +219,7 @@ int main() {
         //resets the surface
         SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));
 
+        createShapes();
 		setPixel(surface);
 		SDL_UpdateWindowSurface(window);
 
@@ -226,6 +260,10 @@ int main() {
 
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    for(int i = 0; i < shapes.size(); ++i) {
+        delete shapes[i];
+    }
 
     //saveToFile("test.ppm", img);
     return 0;
